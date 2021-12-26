@@ -11,7 +11,7 @@ pipeline {
             steps {
                 script {
                 sh "echo 'Compile Code!'"
-                ./mvnw clean compile -e
+                sh "./mvnw clean compile -e"              
                 }
             }
         }
@@ -19,7 +19,7 @@ pipeline {
             steps {
                 script {
                 sh "echo 'Test Code!'"
-                ./mvnw clean test -e
+                sh "./mvnw clean test -e"
                 }
             }
         }
@@ -27,7 +27,23 @@ pipeline {
             steps {
                 script {
                 sh "echo 'Build .Jar!'"
-                ./mvnw clean package -e
+                sh "./mvnw clean package -e"
+                }
+            }
+        }
+        stage("Run jar"){
+            steps {
+                script {
+                sh "echo 'Run .Jar!'"
+                sh "./mvnw spring-boot:run"
+                }
+            }
+        }
+        stage("testing app"){
+            steps {
+                script {
+                sh "echo 'Testing APP!'"
+                sh "curl -X GET 'http://localhost:8081/rest/mscovid/test?msg=testing'"
                 }
             }
         }
