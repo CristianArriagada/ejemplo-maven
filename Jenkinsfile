@@ -31,22 +31,6 @@ pipeline {
                 }
             }
         }
-        stage("Run Jar"){
-            steps {
-                script {
-                sh "echo 'RUN .Jar!'"
-                ./mvnw spring-boot:run
-                }
-            }
-        }
-        stage("Testing Application"){
-            steps {
-                script {
-                sh "echo 'test APP!'"
-                curl -X GET 'http://localhost:8081/rest/mscovid/test?msg=testing'
-                }
-            }
-        }
     }
     post {
         always {
