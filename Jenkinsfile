@@ -1,41 +1,26 @@
 import groovy.json.JsonSlurperClassic
-
 def jsonParse(def json) {
     new groovy.json.JsonSlurperClassic().parseText(json)
 }
 pipeline {
     agent any
     stages {
-        stage("Paso 1: Compliar"){
+        stage("Paso 0: Download and checkout"){
             steps {
-                script {
-                sh "echo 'Compile Code!'"
-                // Run Maven on a Unix agent.
-                sh "./mvnw clean compile -e"
-                }
+                checkout(
+                    [$class: 'GitSCM',
+                    //Acá reemplazar por el nonbre de branch
+                    branches: [[name: "webhooks" ]],
+                    //Acá reemplazar por su propio repositorio
+                    userRemoteConfigs: [[url: 'https://github.com/CristianArriagada/ejemplo-maven.git']]])
             }
         }
-        stage("Paso 2: Testear"){
+        stage("Paso 2: Análisis SonarQub"){
             steps {
-                script {
-                sh "echo 'Test Code!'"
-                // Run Maven on a Unix agent.
-                sh "./mvnw clean test -e"
-                }
-            }
-        }
-        stage("Paso 3: Build .Jar"){
-            steps {
-                script {
-                sh "echo 'Build .Jar!'"
-                // Run Maven on a Unix agent.
-                sh "./mvnw clean package -e"
-                }
-            }
-            post {
-                //record the test results and archive the jar file.
-                success {
-                    archiveArtifacts artifacts:'build/*.jar'
+                withSonarQubeEnv('sonarqube') {
+                    sh "echo 'Calling sonar Service in another docker container!'"
+                    // Run Maven on a Unix agent to execute Sonar.
+                    sh 'mvn  -Dsonar.analysis.mode=org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.0.2155:sonar'
                 }
             }
         }
@@ -47,7 +32,6 @@ pipeline {
         success {
             sh "echo 'fase success'"
         }
-
         failure {
             sh "echo 'fase failure'"
         }
