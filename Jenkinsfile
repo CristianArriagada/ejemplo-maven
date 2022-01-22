@@ -1,5 +1,4 @@
 import groovy.json.JsonSlurperClassic
-
 def jsonParse(def json) {
     new groovy.json.JsonSlurperClassic().parseText(json)
 }
@@ -11,7 +10,7 @@ pipeline {
                 script {
                 sh "echo 'Compile Code!'"
                 // Run Maven on a Unix agent.
-                sh "./mvnw clean compile -e"
+                sh "mvn clean compile -e"
                 }
             }
         }
@@ -20,7 +19,7 @@ pipeline {
                 script {
                 sh "echo 'Test Code!'"
                 // Run Maven on a Unix agent.
-                sh "./mvnw clean test -e"
+                sh "mvn clean test -e"
                 }
             }
         }
@@ -29,7 +28,7 @@ pipeline {
                 script {
                 sh "echo 'Build .Jar!'"
                 // Run Maven on a Unix agent.
-                sh "./mvnw clean package -e"
+                sh "mvn clean package -e"
                 }
             }
             post {
@@ -47,7 +46,6 @@ pipeline {
         success {
             sh "echo 'fase success'"
         }
-
         failure {
             sh "echo 'fase failure'"
         }
