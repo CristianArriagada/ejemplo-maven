@@ -4,7 +4,21 @@ def jsonParse(def json) {
 }
 pipeline {
     agent any
+    environment {
+        NEXUS_USER         = credentials('user-nexus')
+        NEXUS_PASSWORD     = credentials('password-nexus')
+    }
     stages {
+        stage("Paso 0: Download and checkout"){
+            steps {
+                checkout(
+                    [$class: 'GitSCM',
+                    //Acá reemplazar por el nonbre de branch
+                    branches: [[name: "feature-nexus" ]],
+                    //Acá reemplazar por su propio repositorio
+                    userRemoteConfigs: [[url: 'https://github.com/CristianArriagada/ejemplo-maven.git']]])
+            }
+        }
         stage("Paso 1: Compliar"){
             steps {
                 script {
@@ -46,20 +60,63 @@ pipeline {
                     sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=github-sonar'
                 }
             }
-        }
-        stage("Paso 5: Levantar Springboot APP"){
-            steps {
-                sh 'mvn spring-boot:run &'
+            post {
+                //record the test results and archive the jar file.
+                success {
+                    //archiveArtifacts artifacts:'build/*.jar'
+                    nexusPublisher nexusInstanceId: 'nexus',
+                        nexusRepositoryId: 'devops-usach-nexus',
+                        packages: [
+                            [$class: 'MavenPackage',
+                                mavenAssetList: [
+                                    [classifier: '',
+                                    extension: '.jar',
+                                    filePath: 'build/DevOpsUsach2020-0.0.1.jar']
+                                ],
+                        mavenCoordinate: [
+                            artifactId: 'DevOpsUsach2020',
+                            groupId: 'com.devopsusach2020',
+                            packaging: 'jar',
+                            version: '0.0.1']
+                        ]
+                    ]
+                }
             }
         }
-        stage("Paso 6: Dormir(Esperar 10sg) "){
+        stage("Paso 5: Download Nexus"){
             steps {
-                sh 'sleep 10'
+                sh 'curl -X GET -u ${NEXUS_USER}:${NEXUS_PASSWORD} http://nexus:8081/repository/devops-usach-nexus/com/devopsusach2020/DevOpsUsach2020/0.0.1/DevOpsUsach2020-0.0.1.jar -O'
             }
         }
-        stage("Paso 7: Test Alive Service - Testing Application!"){
+        stage("Paso 6: Run: Levantar Springboot APP"){
             steps {
-                sh 'curl -X GET "http://localhost:8081/rest/mscovid/test?msg=testing"'
+                sh 'nohup java -jar DevOpsUsach2020-0.0.1.jar & >/dev/null'
+            }
+        }
+        stage("Paso 7: Curl: Dormir(Esperar 60sg)"){
+            steps {
+                sh "sleep 60 && curl -X GET 'http://localhost:8081/rest/mscovid/test?msg=testing'"
+            }
+        }
+        stage("Paso 8: Subir nueva Version"){
+            steps {
+                //archiveArtifacts artifacts:'build/*.jar'
+                nexusPublisher nexusInstanceId: 'nexus',
+                    nexusRepositoryId: 'devops-usach-nexus',
+                    packages: [
+                        [$class: 'MavenPackage',
+                            mavenAssetList: [
+                                [classifier: '',
+                                extension: '.jar',
+                                filePath: 'DevOpsUsach2020-0.0.1.jar']
+                            ],
+                    mavenCoordinate: [
+                        artifactId: 'DevOpsUsach2020',
+                        groupId: 'com.devopsusach2020',
+                        packaging: 'jar',
+                        version: '1.0.0']
+                    ]
+                ]
             }
         }
     }
